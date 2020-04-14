@@ -1,7 +1,6 @@
 # Folders to ignore
-/Python/ToTest
+/Python/*
 *.py
 
 # Files to ignore
-/Matlab/FSS_touching_v01.m
-Seed_Morphology/Matlab/
+/Matlab/*
