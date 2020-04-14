@@ -9,6 +9,6 @@ The Python version has a code for images of festuca seeds that are not touching 
 
 
 
-## Written by Joan M. Barreto Ortiz
+### Written by Joan M. Barreto Ortiz
 Please feel free to contact me for more information:
 jbarreto@umn.edu | jmbarretoo@gmail.com
