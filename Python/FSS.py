@@ -22,6 +22,8 @@ def FSS(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = F
     from skimage.measure import label, regionprops
     
     import matplotlib.pyplot as plt
+    plt.close('all')
+    # plt.show()
     
     import pandas as pd
     
@@ -44,8 +46,13 @@ def FSS(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = F
     # Define function 
     def FSS_image(img_name):
         
+        plt.close('all')
+        
         # Read image
-        img0 = io.imread(img_name)  
+        OriginalImage = io.imread(img_name)  
+        
+        # Crop image if necessary
+        img0 = OriginalImage[:, 1500:, :]
         
         # Get image name as string
         Image_Name = img_name.split('\\')[-1] 
@@ -64,11 +71,12 @@ def FSS(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = F
         # bw0 = gray0 > T
         
         # Or... Segment image based on Color Thresholder (Matlab)
-        bw0 = img0[:, :, 1] > 65
+        # bw0 = img0[:, :, 1] > 65 # for a red background
+        bw0 = img0[:, :, 2] > 65 # for a black background
          
         
         # Filter out objects whose area < 1000
-        bw1 = morphology.remove_small_objects(bw0, min_size=1000)
+        bw1 = morphology.remove_small_objects(bw0, min_size=200)
         
         # Label seeds
         labeled_seeds, num_spikes = label(bw1, return_num = True)
@@ -77,7 +85,7 @@ def FSS(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = F
         RGB = np.asarray(img0)
         RGB = np.where(bw1[...,None], RGB, 0)
     
-        labels = bw1 * labeled_seeds
+        # labels = bw1 * labeled_seeds
         # plt.imshow(labels)
         
         # Determine regions properties
@@ -95,14 +103,15 @@ def FSS(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = F
             # im.save(out_image)
             plot_name = 'FSS_Output\\' + Image_Name + '.png'
             f.savefig(plot_name)
+            plt.close('all')
          
         
         # If user wants to measure color...
         if color_data == True:
             # Assign each color channel to a different variable
-            red = img0[:, :, 0]
-            green = img0[:, :, 1]
-            blue = img0[:, :, 2]
+            red = RGB[:, :, 0]
+            green = RGB[:, :, 1]
+            blue = RGB[:, :, 2]
             
             # Mean colors
             red_props = regionprops(labeled_seeds, intensity_image=red)
@@ -195,6 +204,8 @@ def FSS(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = F
         # Append to each dataset       
         Seeds_data = Seeds_data.append(Seeds)
         
+    
+    plt.close('all')       
         
     
     

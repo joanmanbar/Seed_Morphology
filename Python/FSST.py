@@ -12,6 +12,8 @@ Created on Wed Apr  1 23:23:33 2020
 def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = False, plots = False):
     
     print('\n' * 2)
+    print('Thanks for using Festuca Seed Size Touching (FSST)!')
+    print('\n' * 2)
     
     # Import dependencies
     import os
@@ -31,6 +33,7 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
     from PIL import Image, ImageEnhance 
     
     import matplotlib.pyplot as plt
+    plt.close('all')
     
     import pandas as pd
     
@@ -51,10 +54,14 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
         
         
     # Define function 
-    def FSS(img_name):
+    def FSST_image(img_name):
         
         # Read image
+        # img_name = 'C:\\Users\\jbarreto\\Pictures\\EpsonV600\\Yinjie_seeds\\PI_109497_009.tif'
         img0 = io.imread(img_name)  
+        
+        # Crop image if necessary
+        img0 = img0[:, 1500:, :]
         
         # Get image name as string
         Image_Name = img_name.split('\\')[-1] 
@@ -81,10 +88,10 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
         # bw0 = gray0 > T
         
         # Or... Segment image based on Color Thresholder (Matlab)
-        bw0 = img0[:,:,2] > 125     # Values in blue channel > 125
+        bw0 = img0[:,:,2] > 65     # Values in blue channel > 125
         
         # Filter out objects whose area < 1000
-        bw1 = morphology.remove_small_objects(bw0, min_size=1000)           # 600dpi
+        bw1 = morphology.remove_small_objects(bw0, min_size=100)           # 600dpi
         
         # Apply first mask to gray
         img1 = bw1 * gray0
@@ -131,7 +138,7 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
         bw3 = ndimage.binary_fill_holes(bw3)
         
         # Filter out objects whose area < 400
-        bw3 = morphology.remove_small_objects(bw3, min_size=400)
+        bw3 = morphology.remove_small_objects(bw3, min_size=100)
         # plt.imshow(bw3)        
         
         
@@ -143,19 +150,19 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
         # Label seeds
         labeled_seeds, num_spikes = label(bw3, return_num = True)
         labels = bw3 * labeled_seeds        
+        
+        # Apply mask to RGB
+        RGB = np.asarray(img0)
+        RGB = np.where(bw3[...,None], RGB, 0)
               
         # Determine regions properties
         Reg_Props = regionprops(labeled_seeds)
         
         # Plots?
         if plots == True:
-            
-            # Apply mask to RGB
-            RGB = np.asarray(img0)
-            RGB = np.where(bw3[...,None], RGB, 0)
-            
+            plt.ioff()
             f, (ax0, ax1) = plt.subplots(1, 2, figsize=(15, 5), sharex=True, sharey=True)
-            # plt.ioff()
+            
             ax0.imshow(RGB)
             ax1.imshow(labels)
             ax0.title.set_text("Thresholded RGB")
@@ -164,6 +171,7 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
             # im.save(out_image)
             plot_name = 'FSST_Output\\' + Image_Name + '.png'
             f.savefig(plot_name)
+            plt.close('all')
          
         
         # measuring color?
@@ -254,7 +262,7 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
         image_time = time.time()
         
         # Return the dataset from the function
-        Seeds = FSS(i)
+        Seeds = FSST_image(i)
         
         # How long did it take to run this image?
         print('\n')
@@ -263,8 +271,10 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
         
         # Append to each dataset       
         Seeds_data = Seeds_data.append(Seeds)
-        
-        
+    
+# Close any open image and turn the graphics device back on.    
+    plt.close('all')
+    plt.ion()    
     
     
     # Export data to output directory
