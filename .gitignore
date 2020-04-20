@@ -1,7 +1,7 @@
 # Folders to ignore
-Python/ToTest/
-R/
+/Python/ToTest/
+/R/
 
 # Files to ignore
-Matlab/FSS_touching_v01.m
+/Matlab/FSS_touching_v01.m
 /Matlab/rgb2mask.m
