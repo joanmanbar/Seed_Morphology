@@ -1,0 +1,215 @@
+---
+title: "Image analysis of Festuca seeds"
+author: "Joan Barreto & Yinjie Qiu"
+date: "11/29/2019"
+output: pdf_document
+---
+
+```{r include=FALSE, warning=FALSE, message=FALSE}
+# Set working directory
+# mydir <- dirname(rstudioapi::getSourceEditorContext()$path)
+# setwd(mydir)
+# library(here)
+# set_here(path = ".", verbose = TRUE)
+
+```
+
+
+\color{black}
+
+# **Methods**
+
+Multiple USDA PI accessions with different genome sizes were used to explore a potential relationship between seed size and ploidy level in Festuca species. Seeds from each accessions were randomly selected to measure the area, length and width of the seeds using image analysis. The varieties "Beacon" (6X) and "Quatro" (4X) were used as controls, for a total of XX genotypes. The TIF images (Tagged Image File Format) were obtained by scanning the seeds with an Epson Perfection V6 flatbed scanner at 600 dpi (dots per inch) with size 1987 (width) by 2169 (length) pixels. The images were processed with a custom Python script (**https://github.com/joanmanbar/Seed_Morphology**) that transformed the original images to threshold and measure the seed length and width respectively as the length (in pixels) of the major and minor axes of a fitted ellipse, whereas the area is calculated as the number of pixels in the seed. The script returned a dataset containing image name, the seed number and their dimensional attributes. The data was filter in _R_ (R Core Team, 2014) by selecting 10 seeds around the mean size, those seeds were used to regress the seed size on the ploidy level using _R_ and the _ggplot2_ package (Wickham, 2009) for plots and figures.
+
+
+
+
+\
+\
+
+## **Preparing the data**
+
+```{r}
+# Get working directory
+mydir <- getwd()
+
+
+# Read data
+mydata1 <- read.csv(paste0(mydir, '/Seeds_data_restuls.csv'))
+mydata1$Image_Name <- as.character(mydata1$Image_Name)
+
+# Remove dust if necessary (outliers)
+mydata2 <- mydata1[which(mydata1$Area > 1000), ]
+
+# Extract accession name into another variable
+mydata2$Accession <- substr(mydata2$Image_Name, 1, 
+                            nchar(mydata2$Image_Name)-11)
+
+# Extract ploidy level into another variable
+mydata2$Ploidy <- substr(mydata2$Image_Name, 
+                         nchar(mydata2$Image_Name)-10,
+                         nchar(mydata2$Image_Name))
+
+mydata2$Ploidy <- substr(mydata2$Image_Name, 
+                         nchar(mydata2$Image_Name)-9,
+                         nchar(mydata2$Image_Name)-8)
+# Convert it into a factor
+mydata2$Ploidy <-  as.factor(mydata2$Ploidy)
+
+# Reorganize the accessions by ploidy level so they can be plotted in order.
+mydata2$Accession <- factor(mydata2$Accession, 
+                            levels = c("PI206268","PI422463","PI676177",
+                                       "PI251123","PI251127","PI251128",
+                                       "PI234896","PI234898","PI268234",
+                                       "PI302899","PI311403","PI318989",
+                                       "Quatro","Beacon"))
+
+
+```
+
+
+
+\
+\
+
+## **Convert pixels to milimiters**
+
+
+Now we must convert seed dimensions in pixels to mm!
+We use this website (https://www.pixelcalculator.com/) to get the conversion factors from px to mm.
+
+```{r}
+
+## Convert px to mm
+# Original Height = 2097 px (44mm)
+# Original Width (or length) = 1624 px (34mm)
+# 1200 dpi
+
+px2mm <- 0.5 * ( (1624/34) + (2097/44) )    # Average of both dimensions
+
+# Apply conversion factors
+mydata2$Area <- mydata2$Area/ (34*44)
+mydata2$Length <- mydata2$Length / px2mm
+mydata2$Width <- mydata2$Width / px2mm
+
+
+```
+
+
+
+\
+\
+
+## **Data visualization and analyses of variance**
+
+
+### **Seed area**
+```{r warning=FALSE}
+
+library(ggplot2)
+
+
+# Distribution of the seed area across accessions
+bp1 <- ggplot(mydata2, aes(x=Accession, y=Area, fill = Ploidy)) +
+  geom_boxplot() + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(y= expression(paste("Seed Area  ", (mm^2))), x = "Accession")
+
+bp1
+
+
+
+
+
+# Model1 <- lm(Area ~ Ploidy + Accession, data = mydata2)
+Model1 <- lm(Area ~ Ploidy, data = mydata2)
+summary(Model1)
+anova(Model1)
+
+
+```
+\
+\
+
+### **Seed length**
+
+```{r }
+
+# Distribution of the seed length across accessions
+bp2 <- ggplot(mydata2, aes(x=Accession, y=Length, fill = Ploidy)) +
+  geom_boxplot() + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(y= "Seed Length (mm)", x = "Accession")
+
+bp2
+
+
+
+
+
+# Regress the seed length on ploidy level
+Model2 <- lm(Length ~ Ploidy, data = mydata2)
+summary(Model2)
+anova(Model2)
+
+
+```
+
+
+\
+\
+
+### **Seed width**
+
+```{r }
+
+# Distribution of the seed width across accessions
+bp3 <- ggplot(mydata2, aes(x=Accession, y=Width, fill = Ploidy)) +
+  geom_boxplot() + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(y= "Seed Width (mm)", x = "Accession")
+
+bp3
+
+
+
+
+
+# Regress the seed width using a Type II ANOVA (main effects)
+Model3 <- lm(Width ~ Ploidy, data = mydata2)
+summary(Model3)
+anova(Model3)
+
+```
+
+
+
+
+\
+\
+\
+\
+
+# **Results**
+Our results indicate that there are statistical differences in seed area, length and width between four different ploidy levels of Festuca ($p$-value < 0.01). Bla bla bla...
+
+
+
+
+\
+\
+\
+\
+
+# **References**
+
+R Core Team (2014). R: A language and environment for statistical computing. R Foundation for Statistical
+Computing, Vienna, Austria. URL http://www.R-project.org/
+
+Wickham, H. (2009) ggplot2: elegant graphics for data analysis. Springer New York.
+
+
+
