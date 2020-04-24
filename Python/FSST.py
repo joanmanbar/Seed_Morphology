@@ -12,8 +12,6 @@ Created on Wed Apr  1 23:23:33 2020
 def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = False, plots = False):
     
     print('\n' * 2)
-    print('Thanks for using Festuca Seed Size Touching (FSST)!')
-    print('\n' * 2)
     
     # Import dependencies
     import os
@@ -278,7 +276,7 @@ def FSST(Images_Folder, Image_format='.tif', Output_Folder='same', color_data = 
     
     
     # Export data to output directory
-    Seeds_data.to_csv (r'FSST_Output\Seeds_data_restuls.csv', header=True, index=False)
+    Seeds_data.to_csv (r'FSST_Output\Seeds_data_results.csv', header=True, index=False)
     
     
     # How long did it take to run the whole code?
