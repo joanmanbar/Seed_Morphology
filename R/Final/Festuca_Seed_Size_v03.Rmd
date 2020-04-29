@@ -28,7 +28,7 @@ library(scales)
 
 # **Methods**
 
-Image analysis was used to explore a potential relationship between seed size and ploidy level in Festuca species. Seeds from each accessions were randomly selected and imaged with an Epson Perfection V6 flatbed scanner at 600 dpi (dots per inch) with size 1987 (width) by 2169 (length) pixels. The TIF images (Tagged Image File Format) were processed with a custom Python script (**https://github.com/joanmanbar/Seed_Morphology**) that transformed the original images to threshold and measure the seed length and width respectively as the length (in pixels) of the major and minor axes of a fitted ellipse, whereas the area is calculated as the number of pixels in the seed. The script returned a dataset containing the image name, the seed number and their dimensional attributes. The data analysis was performed in _R_ (R Core Team, 2014) by fitting liner models with seed area, length, and width as response and the ploidy level as predictor. To remove potential artifacts, we filtered out the seeds that were not within the 45th and 55th quantile. Finally, we used the _ggplot2_ package (Wickham, 2009) for plots and figures.
+Image analysis was used to explore a potential relationship between seed size and ploidy level in Festuca species. Seeds from each accessions were randomly selected and imaged with an Epson Perfection V6 flatbed scanner at 600 dpi (dots per inch) with size 1987 (width) by 2169 (height) pixels. The TIF images (Tagged Image File Format) were processed with a custom Python script (**https://github.com/joanmanbar/Seed_Morphology**) that transformed the original images to threshold and measure the seed length and width respectively as the length (in pixels) of the major and minor axes of a fitted ellipse, whereas the area is calculated as the number of pixels in the seed. The script returned a dataset containing the image name, the seed number and their dimensional attributes. The data analysis was performed in _R_ (R Core Team, 2014) by fitting liner models with seed area, length, and width as response and the ploidy level as predictor. To remove potential artifacts, we filtered out the seeds that were not within the 45th and 55th quantile. Finally, we used the _ggplot2_ package (Wickham, 2009) for plots and figures.
 
 
 
@@ -45,6 +45,20 @@ mydir <- getwd()
 # Read data 
 mydata1 <- read.csv(paste0(mydir, '/input/Seeds_data_results.csv'))
 ploidy <- read.csv(paste0(mydir, '/input/pic_list_with_ploidy.csv'))
+Prev <- read.csv(paste0(mydir, '/input/Previous_data.csv'))
+Prev$Image_Name <- as.character(Prev$Image_Name)
+Prev$Image_Name <- substr(Prev$Image_Name, 1, 
+                            nchar(Prev$Image_Name)-11)
+Prev$Image_Name <- as.factor(Prev$Image_Name)
+colnames(Prev)[1] <- "Accession"
+
+Prev <- group_by(Prev, Accession)
+Prev <- summarise( Prev,
+                        sampled_seeds_prev = n(),
+                        mean_area_prev = mean(Area, na.rm = TRUE),
+                        mean_length_prev = mean(Length, na.rm = TRUE),
+                        mean_width_prev = mean(Width, na.rm = TRUE) )
+
 
 # Remove 5X accessions
 ploidy <- ploidy[-which(ploidy$Ploidy == "5X"), ]
@@ -77,16 +91,34 @@ Total_seeds <- mydata3 %>% group_by (Accession) %>% summarise(n = n())
 # Visualize coefficient of variation per accession
 Accessions <- group_by(mydata3, Ploidy, Accession)
 
-Accessions <- summarise(Accessions,
+Accessions <- summarise( Accessions,
                         sampled_seeds = n(),
                         mean_area = mean(Area, na.rm = TRUE),
-                        sd_area = sd(Area, na.rm = TRUE),
-                        cv_area = cv(Area))
+                        mean_length = mean(Length, na.rm = TRUE),
+                        mean_width = mean(Width, na.rm = TRUE) )
+
 write.csv(Accessions, './output/Table_1.csv', row.names = FALSE)
 
 # kable(Accessions, caption = "Coefficient of Variation")
 
 ```
+
+
+
+## Compare previous against current area size
+
+```{r}
+comparison <- merge(Prev, Accessions)
+comparison$ratio_area <- comparison$mean_area/comparison$mean_area_prev
+comparison$ratio_length <- comparison$mean_length/comparison$mean_length_prev
+comparison$ratio_width <- comparison$mean_width/comparison$mean_width_prev
+
+mydata3$Area <- mydata3$Area / mean(comparison$ratio_area)
+mydata3$Length <- mydata3$Length / mean(comparison$ratio_length)
+mydata3$Width <- mydata3$Width / mean(comparison$ratio_width)
+
+```
+
 
 
 
@@ -100,21 +132,45 @@ We used this website (https://www.pixelcalculator.com/) to get the conversion fa
 
 ```{r, echo=TRUE}
 
-## Convert px to mm
-# Original Width (or length) = 2169 px (92mm)
-W_px <- 2169
-W_mm <- 92
-# Original Height = 1987 px (84mm)
-H_px <- 1987
-H_mm <- 84
-# 600 dpi
+## Convert px to mm at 600dpi --> 600px/inch
+# This means that there are 600px per inch, or in a 25.4mm line
+# Original Height (or length) = 2169 px (92mm)
+# SCANNER: Original Height (or length) = 7019 px (297.2mm or 11.7")
 
-px2mm <- 0.5 * ( (W_px/W_mm) + (H_px/H_mm) )    # Average of both dimensions
+Conv_factor_HW <- 25.4 / 600
+
+# If 25.4mm have 600 px, 25.4^2 (645.16) have 360,000 pixels.
+# Therefore, the area, which is given in px, has to be multiplied by 645.16/36000
+Conv_factor_area <- (25.4^2) / 360000
+
+mydata3$Area <- mydata3$Area * Conv_factor_area
+mydata3$Length <- mydata3$Length * Conv_factor_HW
+mydata3$Width <- mydata3$Width * Conv_factor_HW
+
+
+
+# Area_sqmm <- 297.2 * 215.9
+# Area_px <- 7019*5100
+# 
+# Area_sqmm/Area_px * 700
+# 
+# # Conversion factor for area
+# CF_area <- 0.5 * ( (600 * 92 / 2169 / 2.54) + (600 * 84 / 1987 / 2.54) )
+# 
+# H_px <- 7019
+# H_mm <- 297.2
+# # Original Width = 1987 px (84mm)
+# # SCANNER: Original Width = 5100 px (215.9mm or 8.5")
+# W_px <- 5100
+# W_mm <- 215.9
+# # 600 dpi
+
+
+# mean(mydata3$Area)
+
+# px2mm <- 0.5 * ( W_mm + H_mm )    # Average of both dimensions
 
 # Apply conversion factors
-mydata3$Area <- mydata3$Area/ (W_mm*H_mm)
-mydata3$Length <- mydata3$Length / px2mm
-mydata3$Width <- mydata3$Width / px2mm
 
 
 ```
